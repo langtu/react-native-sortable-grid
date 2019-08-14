@@ -249,7 +249,6 @@ class SortableGrid extends Component {
             }
 
             for (let i = fromIndex + 1; i <= toIndex; i++) {
-              console.log(`update ${i} to ${i - 1}`)
               blockPositions[getBlockFromOrder(i)].origin = this._getBlock(getBlockFromOrder(i - 1)).origin;
               this.itemOrder[getBlockFromOrder(i)].order = getOrder(getBlockFromOrder(i - 1));
             }
@@ -469,7 +468,6 @@ class SortableGrid extends Component {
           ref: item.ref,
           order: fixedIndex,
         });
-        console.log(this.itemOrder)
         for (let i = fixedIndex; i < this.itemOrder.length; i++) {
           this.itemOrder[i].order += 1;
         }
