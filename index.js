@@ -482,11 +482,9 @@ class SortableGrid extends Component {
             currentPosition: new Animated.ValueXY(thisPosition),
             origin: thisPosition,
           });
-          console.log(blockPositions);
           this.items.splice(fixedIndex, 0, item);
           this.setState({ blockPositions, blockPositionsSetCount });
 
-          console.log(blockPositions[fixedIndex])
           this.setGhostPositions();
         }
       }
