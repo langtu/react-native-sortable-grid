@@ -193,25 +193,94 @@ class SortableGrid extends Component {
       })
 
       if (closest !== this.state.activeBlock) {
-        // animate the activeBlock closest block to its previous position
-        Animated.timing(
-          this._getBlock(closest).currentPosition,
-          {
-            toValue: this._getActiveBlock().origin,
-            duration: this.blockTransitionDuration
+        // // animate the activeBlock closest block to its previous position
+        // Animated.timing(
+        //   this._getBlock(closest).currentPosition,
+        //   {
+        //     toValue: this._getActiveBlock().origin,
+        //     duration: this.blockTransitionDuration
+        //   }
+        // ).start()
+
+        // // update the position of the closest block
+        // let blockPositions = this.state.blockPositions
+        // this._getActiveBlock().origin = blockPositions[closest].origin
+        // blockPositions[closest].origin = originalPosition
+        // this.setState({ blockPositions })
+
+        // // update the order array
+        // var tempOrderIndex = this.itemOrder[this.state.activeBlock].order
+        // this.itemOrder[this.state.activeBlock].order = this.itemOrder[closest].order
+        // this.itemOrder[closest].order = tempOrderIndex
+
+        // animate all blocks from closest block to active block, each animates to nearest block
+        try {
+          const blockPositions = [...this.state.blockPositions.map(function (t) { return { ...t } })]
+          const orders = [...this.itemOrder.map(function (t) { return { ...t } })]
+          const getBlockFromOrder = function (order) {
+            for (let i = 0; i < orders.length; i++) {
+              if (orders[i].order === order) {
+                return i;
+              }
+            }
           }
-        ).start()
+          const getBlock = function (block) {
+            return blockPositions[block];
+          }
+          const getOrder = function (block) {
+            return orders[block].order;
+          }
+          const closestOrder = getOrder(closest);
+          const closestOrigin = blockPositions[closest].origin;
 
-        // update the position of the closest block
-        let blockPositions = this.state.blockPositions
-        this._getActiveBlock().origin = blockPositions[closest].origin
-        blockPositions[closest].origin = originalPosition
-        this.setState({ blockPositions })
 
-        // update the order array
-        var tempOrderIndex = this.itemOrder[this.state.activeBlock].order
-        this.itemOrder[this.state.activeBlock].order = this.itemOrder[closest].order
-        this.itemOrder[closest].order = tempOrderIndex
+          const fromIndex = this.itemOrder[this.state.activeBlock].order;
+          const toIndex = this.itemOrder[closest].order;
+
+          if (fromIndex < toIndex) {
+            for (let i = toIndex; i > fromIndex; i--) {
+              Animated.timing(
+                getBlock(getBlockFromOrder(i)).currentPosition,
+                {
+                  toValue: getBlock(getBlockFromOrder(i - 1)).origin,
+                  duration: this.blockTransitionDuration
+                }
+              ).start()
+            }
+
+            for (let i = fromIndex + 1; i <= toIndex; i++) {
+              console.log(`update ${i} to ${i - 1}`)
+              blockPositions[getBlockFromOrder(i)].origin = this._getBlock(getBlockFromOrder(i - 1)).origin;
+              this.itemOrder[getBlockFromOrder(i)].order = getOrder(getBlockFromOrder(i - 1));
+            }
+
+            blockPositions[this.state.activeBlock].origin = closestOrigin;
+            this.itemOrder[this.state.activeBlock].order = closestOrder;
+          }
+          else {
+            for (let i = toIndex; i < fromIndex; i++) {
+              Animated.timing(
+                getBlock(getBlockFromOrder(i)).currentPosition,
+                {
+                  toValue: getBlock(getBlockFromOrder(i + 1)).origin,
+                  duration: this.blockTransitionDuration
+                }
+              ).start()
+            }
+
+            for (let i = fromIndex - 1; i >= toIndex; i--) {
+              blockPositions[getBlockFromOrder(i)].origin = this._getBlock(getBlockFromOrder(i + 1)).origin;
+              this.itemOrder[getBlockFromOrder(i)].order = getOrder(getBlockFromOrder(i + 1));
+            }
+
+            blockPositions[this.state.activeBlock].origin = closestOrigin;
+            this.itemOrder[this.state.activeBlock].order = closestOrder;
+          }
+
+          this.setState({ blockPositions })
+        } catch (e) {
+          console.log('error:', e)
+        }
       }
     }
   }
@@ -288,7 +357,6 @@ class SortableGrid extends Component {
   }
 
   assessGridSize = ({nativeEvent}) => {
-    console.log("Calculating grid size");
     if (this.props.itemWidth && this.props.itemWidth < nativeEvent.layout.width) {
       this.itemsPerRow = Math.floor(nativeEvent.layout.width / this.props.itemWidth)
       this.blockWidth = nativeEvent.layout.width / this.itemsPerRow
@@ -390,21 +458,38 @@ class SortableGrid extends Component {
         this.items[foundKey] = item;
       }
       else {
-        this.itemOrder.push({ key: item.key, ref: item.ref, order: this.items.length });
-        if (!this.initialLayoutDone) {
-          this.items.push(item);
+        let fixedIndex = this.items.findIndex(function (i) {
+          return i.props.fixed;
+        });
+        if (fixedIndex < 0) {
+          fixedIndex = this.items.length;
         }
-        else {
-          let blockPositions = this.state.blockPositions
-          let blockPositionsSetCount = ++this.state.blockPositionsSetCount
-          let thisPosition = this.getNextBlockCoordinates()
+        this.itemOrder.splice(fixedIndex, 0, {
+          key: item.key,
+          ref: item.ref,
+          order: fixedIndex,
+        });
+        console.log(this.itemOrder)
+        for (let i = fixedIndex; i < this.itemOrder.length; i++) {
+          this.itemOrder[i].order += 1;
+        }
+        if (!this.initialLayoutDone) {
+          this.items.splice(fixedIndex, 0, item);
+        } else {
+          let blockPositions = this.state.blockPositions;
+          let blockPositionsSetCount = ++this.state.blockPositionsSetCount;
+          let thisPosition = this.getNextBlockCoordinates();
+
           blockPositions.push({
-            currentPosition : new Animated.ValueXY( thisPosition ),
-            origin          : thisPosition
-          })
-          this.items.push(item)
-          this.setState({ blockPositions, blockPositionsSetCount })
-          this.setGhostPositions()
+            currentPosition: new Animated.ValueXY(thisPosition),
+            origin: thisPosition,
+          });
+          console.log(blockPositions);
+          this.items.splice(fixedIndex, 0, item);
+          this.setState({ blockPositions, blockPositionsSetCount });
+
+          console.log(blockPositions[fixedIndex])
+          this.setGhostPositions();
         }
       }
     })
