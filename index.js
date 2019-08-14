@@ -217,25 +217,17 @@ class SortableGrid extends Component {
         try {
           const blockPositions = [...this.state.blockPositions.map(function (t) { return { ...t } })]
           const orders = [...this.itemOrder.map(function (t) { return { ...t } })]
-          console.log(`total blocks=${blockPositions.length}, orders=${orders.length}`)
           const getBlockFromOrder = function (order) {
             for (let i = 0; i < orders.length; i++) {
-              if (!orders[i]) {
-                console.log(`orders[${i}] not exists`)
-              }
               if (orders[i].order === order) {
                 return i;
               }
             }
-            console.log(`could not found block with order ${order}, orders of blocks: ${JSON.stringify(orders.map(function (t) { return t.order }))}`)
           }
           const getBlock = function (block) {
             return blockPositions[block];
           }
           const getOrder = function (block) {
-            if (!orders[block]) {
-              console.log(`could not found order with block ${block}`)
-            }
             return orders[block].order;
           }
           const closestOrder = getOrder(closest);
@@ -244,8 +236,6 @@ class SortableGrid extends Component {
 
           const fromIndex = this.itemOrder[this.state.activeBlock].order;
           const toIndex = this.itemOrder[closest].order;
-
-          console.log(`move from ${fromIndex}(${this.state.activeBlock}) to ${toIndex}(${closest})`)
 
           if (fromIndex < toIndex) {
             for (let i = toIndex; i > fromIndex; i--) {
@@ -258,7 +248,6 @@ class SortableGrid extends Component {
               ).start()
             }
 
-            // update position & index
             for (let i = fromIndex + 1; i <= toIndex; i++) {
               console.log(`update ${i} to ${i - 1}`)
               blockPositions[getBlockFromOrder(i)].origin = this._getBlock(getBlockFromOrder(i - 1)).origin;
@@ -279,9 +268,7 @@ class SortableGrid extends Component {
               ).start()
             }
 
-            // update position & index
             for (let i = fromIndex - 1; i >= toIndex; i--) {
-              console.log(`update ${i} to ${i + 1}`)
               blockPositions[getBlockFromOrder(i)].origin = this._getBlock(getBlockFromOrder(i + 1)).origin;
               this.itemOrder[getBlockFromOrder(i)].order = getOrder(getBlockFromOrder(i + 1));
             }
