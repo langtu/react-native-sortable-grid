@@ -193,25 +193,107 @@ class SortableGrid extends Component {
       })
 
       if (closest !== this.state.activeBlock) {
-        // animate the activeBlock closest block to its previous position
-        Animated.timing(
-          this._getBlock(closest).currentPosition,
-          {
-            toValue: this._getActiveBlock().origin,
-            duration: this.blockTransitionDuration
+        // // animate the activeBlock closest block to its previous position
+        // Animated.timing(
+        //   this._getBlock(closest).currentPosition,
+        //   {
+        //     toValue: this._getActiveBlock().origin,
+        //     duration: this.blockTransitionDuration
+        //   }
+        // ).start()
+
+        // // update the position of the closest block
+        // let blockPositions = this.state.blockPositions
+        // this._getActiveBlock().origin = blockPositions[closest].origin
+        // blockPositions[closest].origin = originalPosition
+        // this.setState({ blockPositions })
+
+        // // update the order array
+        // var tempOrderIndex = this.itemOrder[this.state.activeBlock].order
+        // this.itemOrder[this.state.activeBlock].order = this.itemOrder[closest].order
+        // this.itemOrder[closest].order = tempOrderIndex
+
+        // animate all blocks from closest block to active block, each animates to nearest block
+        try {
+          const blockPositions = [...this.state.blockPositions.map(function (t) { return { ...t } })]
+          const orders = [...this.itemOrder.map(function (t) { return { ...t } })]
+          console.log(`total blocks=${blockPositions.length}, orders=${orders.length}`)
+          const getBlockFromOrder = function (order) {
+            for (let i = 0; i < orders.length; i++) {
+              if (!orders[i]) {
+                console.log(`orders[${i}] not exists`)
+              }
+              if (orders[i].order === order) {
+                return i;
+              }
+            }
+            console.log(`could not found block with order ${order}, orders of blocks: ${JSON.stringify(orders.map(function (t) { return t.order }))}`)
           }
-        ).start()
+          const getBlock = function (block) {
+            return blockPositions[block];
+          }
+          const getOrder = function (block) {
+            if (!orders[block]) {
+              console.log(`could not found order with block ${block}`)
+            }
+            return orders[block].order;
+          }
+          const closestOrder = getOrder(closest);
+          const closestOrigin = blockPositions[closest].origin;
 
-        // update the position of the closest block
-        let blockPositions = this.state.blockPositions
-        this._getActiveBlock().origin = blockPositions[closest].origin
-        blockPositions[closest].origin = originalPosition
-        this.setState({ blockPositions })
 
-        // update the order array
-        var tempOrderIndex = this.itemOrder[this.state.activeBlock].order
-        this.itemOrder[this.state.activeBlock].order = this.itemOrder[closest].order
-        this.itemOrder[closest].order = tempOrderIndex
+          const fromIndex = this.itemOrder[this.state.activeBlock].order;
+          const toIndex = this.itemOrder[closest].order;
+
+          console.log(`move from ${fromIndex}(${this.state.activeBlock}) to ${toIndex}(${closest})`)
+
+          if (fromIndex < toIndex) {
+            for (let i = toIndex; i > fromIndex; i--) {
+              Animated.timing(
+                getBlock(getBlockFromOrder(i)).currentPosition,
+                {
+                  toValue: getBlock(getBlockFromOrder(i - 1)).origin,
+                  duration: this.blockTransitionDuration
+                }
+              ).start()
+            }
+
+            // update position & index
+            for (let i = fromIndex + 1; i <= toIndex; i++) {
+              console.log(`update ${i} to ${i - 1}`)
+              blockPositions[getBlockFromOrder(i)].origin = this._getBlock(getBlockFromOrder(i - 1)).origin;
+              this.itemOrder[getBlockFromOrder(i)].order = getOrder(getBlockFromOrder(i - 1));
+            }
+
+            blockPositions[this.state.activeBlock].origin = closestOrigin;
+            this.itemOrder[this.state.activeBlock].order = closestOrder;
+          }
+          else {
+            for (let i = toIndex; i < fromIndex; i++) {
+              Animated.timing(
+                getBlock(getBlockFromOrder(i)).currentPosition,
+                {
+                  toValue: getBlock(getBlockFromOrder(i + 1)).origin,
+                  duration: this.blockTransitionDuration
+                }
+              ).start()
+            }
+
+            // update position & index
+            for (let i = fromIndex - 1; i >= toIndex; i--) {
+              console.log(`update ${i} to ${i + 1}`)
+              blockPositions[getBlockFromOrder(i)].origin = this._getBlock(getBlockFromOrder(i + 1)).origin;
+              this.itemOrder[getBlockFromOrder(i)].order = getOrder(getBlockFromOrder(i + 1));
+            }
+
+            blockPositions[this.state.activeBlock].origin = closestOrigin;
+            this.itemOrder[this.state.activeBlock].order = closestOrder;
+          }
+
+          this.setState({ blockPositions })
+        } catch (e) {
+          console.log('error:', e)
+        }
       }
     }
   }
@@ -288,7 +370,6 @@ class SortableGrid extends Component {
   }
 
   assessGridSize = ({nativeEvent}) => {
-    console.log("Calculating grid size");
     if (this.props.itemWidth && this.props.itemWidth < nativeEvent.layout.width) {
       this.itemsPerRow = Math.floor(nativeEvent.layout.width / this.props.itemWidth)
       this.blockWidth = nativeEvent.layout.width / this.itemsPerRow
