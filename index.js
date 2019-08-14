@@ -458,21 +458,38 @@ class SortableGrid extends Component {
         this.items[foundKey] = item;
       }
       else {
-        this.itemOrder.push({ key: item.key, ref: item.ref, order: this.items.length });
-        if (!this.initialLayoutDone) {
-          this.items.push(item);
+        let fixedIndex = this.items.findIndex(function (i) {
+          return i.props.fixed;
+        });
+        if (fixedIndex < 0) {
+          fixedIndex = this.items.length;
         }
-        else {
-          let blockPositions = this.state.blockPositions
-          let blockPositionsSetCount = ++this.state.blockPositionsSetCount
-          let thisPosition = this.getNextBlockCoordinates()
+        this.itemOrder.splice(fixedIndex, 0, {
+          key: item.key,
+          ref: item.ref,
+          order: fixedIndex,
+        });
+        console.log(this.itemOrder)
+        for (let i = fixedIndex; i < this.itemOrder.length; i++) {
+          this.itemOrder[i].order += 1;
+        }
+        if (!this.initialLayoutDone) {
+          this.items.splice(fixedIndex, 0, item);
+        } else {
+          let blockPositions = this.state.blockPositions;
+          let blockPositionsSetCount = ++this.state.blockPositionsSetCount;
+          let thisPosition = this.getNextBlockCoordinates();
+
           blockPositions.push({
-            currentPosition : new Animated.ValueXY( thisPosition ),
-            origin          : thisPosition
-          })
-          this.items.push(item)
-          this.setState({ blockPositions, blockPositionsSetCount })
-          this.setGhostPositions()
+            currentPosition: new Animated.ValueXY(thisPosition),
+            origin: thisPosition,
+          });
+          console.log(blockPositions);
+          this.items.splice(fixedIndex, 0, item);
+          this.setState({ blockPositions, blockPositionsSetCount });
+
+          console.log(blockPositions[fixedIndex])
+          this.setGhostPositions();
         }
       }
     })
