@@ -468,7 +468,7 @@ class SortableGrid extends Component {
           ref: item.ref,
           order: fixedIndex,
         });
-        for (let i = fixedIndex; i < this.itemOrder.length; i++) {
+        for (let i = fixedIndex + 1; i < this.itemOrder.length; i++) {
           this.itemOrder[i].order += 1;
         }
         if (!this.initialLayoutDone) {
